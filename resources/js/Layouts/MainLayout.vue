@@ -135,6 +135,17 @@
             </AlertBanner>
         </div>
 
+        <Banner :show="true" styling="success" handle="dfracing2024-announcement">
+            <span>
+                <span class="font-bold">Anouncement:</span> 2024 new beginnings ...
+                <span class="font-bold italic hover:underline">
+                    <Link :href="route('home')">
+                        Read More
+                    </Link>
+                </span>
+            </span>
+        </Banner>
+
         <div class="min-h-screen bg-gray-900 main-background">
             <nav class="border-b border-grayop-700">
                 <!-- Top Bar -->
@@ -308,9 +319,9 @@
                             Maps
                         </NavLink>
 
-                        <!-- <NavLink :href="route('ranking')" :active="route().current('ranking')">
+                        <NavLink :href="route('ranking')" :active="route().current('ranking')">
                             Ranking
-                        </NavLink> -->
+                        </NavLink>
 
                         <NavLink :href="route('records')" :active="route().current('records')">
                             Records
@@ -353,9 +364,9 @@
                             Maps
                         </ResponsiveNavLink>
 
-                        <!-- <ResponsiveNavLink :href="route('ranking')" :active="route().current('ranking')">
+                        <ResponsiveNavLink :href="route('ranking')" :active="route().current('ranking')">
                             Ranking
-                        </ResponsiveNavLink> -->
+                        </ResponsiveNavLink>
 
                         <ResponsiveNavLink @click="showingNavigationDropdown = false" :href="route('records')" :active="route().current('records')">
                             Records
