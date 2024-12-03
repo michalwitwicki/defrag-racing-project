@@ -4,6 +4,10 @@ namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
 
+use App\Jobs\CalculateRatings as CalculateRatingsJob;
+
+use Illuminate\Support\Facades\Log;
+
 class CalculateRatings extends Command
 {
     /**
@@ -18,26 +22,16 @@ class CalculateRatings extends Command
      *
      * @var string
      */
-    protected $description = 'Run the Python script to calculate players ratings';
+    protected $description = 'Calculate players ratings';
 
     /**
      * Execute the console command.
      *
      * @return int
      */
-    public function handle()
-    {
-        $activate = 'source ' . base_path('storage/ranking_calculator/bin/activate');
-        $script = 'python3 ' . base_path('storage/ranking_calculator/main.py');
-        $env = '--env_path ' . base_path('.env');
 
-        // $command = $activate . ' && ' . $script . ' ' . $env;
-        $command = '/bin/bash -c "' . $activate . ' && ' . $script . ' ' . $env . '"';
-
-        file_put_contents(base_path('my_simple_log.txt'), $command . PHP_EOL, FILE_APPEND);
-
-        exec($command);
-
-        return 0;
+    public function handle() {
+        Log::info('CalculateRatings job should start.');
+        dispatch(new CalculateRatingsJob());
     }
 }
