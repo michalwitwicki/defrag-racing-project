@@ -37,7 +37,7 @@ class CalculateRatings implements ShouldQueue
 
     public function handle(): void
     {
-        Log::info('CalculateRatings job started:');
+        Log::info('CalculateRatings job started');
 
         $query = DB::table('records')
             ->whereNull('deleted_at')
@@ -59,10 +59,10 @@ class CalculateRatings implements ShouldQueue
         $query = $this->addMapScores($query);
         $query = $this->addWeightedMapScores($query);
         $query = $this->addPlayerRecordsInCategory($query);
+        $query = $this->addLastActivity($query);
         $query = $this->computePlayerRatings($query);
         $query = $this->addCategoryTotalParticipators($query);
         $query = $this->addCategoryRank($query);
-        $query = $this->addLastActivity($query);
         $query = $this->selectFinalColumns($query);
 
         $result = $query->get();
@@ -96,7 +96,7 @@ class CalculateRatings implements ShouldQueue
             ]);
         }
 
-        Log::info('CalculateRatings job ended.');
+        Log::info('CalculateRatings job ended');
     }
     protected function addRanks($query)
     {
@@ -260,6 +260,18 @@ class CalculateRatings implements ShouldQueue
             '));
     }
 
+    protected function addLastActivity($query)
+    {
+        return DB::table(DB::raw("({$query->toSql()}) as sub"))
+            ->mergeBindings($query)
+            ->addSelect('*')
+            ->addSelect(DB::raw('
+                MAX(date_set)
+                OVER (PARTITION BY mdd_id, physics, mode)
+                AS last_activity
+            '));
+    }
+
     protected function computePlayerRatings($query)
     {
         return DB::table(DB::raw("({$query->toSql()}) as sub"))
@@ -296,18 +308,6 @@ class CalculateRatings implements ShouldQueue
                 DENSE_RANK()
                 OVER (PARTITION BY physics, mode ORDER BY player_rating DESC)
                 AS category_rank
-            '));
-    }
-
-    protected function addLastActivity($query)
-    {
-        return DB::table(DB::raw("({$query->toSql()}) as sub"))
-            ->mergeBindings($query)
-            ->addSelect('*')
-            ->addSelect(DB::raw('
-                MAX(date_set)
-                OVER (PARTITION BY physics, mode)
-                AS last_activity
             '));
     }
 

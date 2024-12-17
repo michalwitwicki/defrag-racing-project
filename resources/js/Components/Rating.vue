@@ -6,7 +6,7 @@
         rating: Object
     });
 
-    const bestrecordCountry = computed(() => {
+    const bestratingCountry = computed(() => {
         let country = props.rating.user?.country ?? props.rating.country;
 
         return (country == 'XX') ? '_404' : country;

@@ -4,43 +4,63 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Inertia\Inertia;
+use Illuminate\Support\Facades\DB;
 
 use App\Models\PlayerRating;
 
 class RankingController extends Controller
 {
+    const PAGINATION_LIMIT = 50;
+    const ACTIVE_PLAYERS_MONTHS = 3;
+
     public function index(Request $request) {
 
         // get VQ3 and CPM ratings
         $gametype = $request->input('gametype', 'run');
+        $rankingtype = $request->input('rankingtype', 'active_players');
 
-        $ratings = PlayerRating::query();
-        $vq3Ratings = $ratings
+        $vq3Ratings = PlayerRating::query();
+        $cpmRatings = PlayerRating::query();
+
+        if ($rankingtype === 'active_players') {
+            $vq3Ratings->where('last_activity', '>=', now()->subMonths(ACTIVE_PLAYERS_MONTHS));
+            $cpmRatings->where('last_activity', '>=', now()->subMonths(ACTIVE_PLAYERS_MONTHS));
+        }
+
+        $vq3Ratings = $vq3Ratings
+            ->with('user')
             ->where('physics', 'vq3')
-            ->where('mode', $gametype)
+            ->where('mode', $gametype);
+
+        $cpmRatings = $cpmRatings
+            ->with('user')
+            ->where('physics', 'cpm')
+            ->where('mode', $gametype);
+
+        $vq3Ratings = $this->addCategoryRank($vq3Ratings);
+        $cpmRatings = $this->addCategoryRank($cpmRatings);
+
+        $vq3Ratings = $vq3Ratings
             ->orderBy('player_rating', 'DESC')
-            ->paginate(50, ['*'], 'vq3Page')
+            ->paginate(PAGINATION_LIMIT, ['*'], 'vq3Page')
             ->withQueryString();
 
-        $ratings = PlayerRating::query();
-        $cpmRatings = $ratings
-            ->where('physics', 'cpm')
-            ->where('mode', $gametype)
+        $cpmRatings = $cpmRatings
             ->orderBy('player_rating', 'DESC')
-            ->paginate(50, ['*'], 'cpmPage')
+            ->paginate(PAGINATION_LIMIT, ['*'], 'cpmPage')
             ->withQueryString();
 
         // get VQ3 and CPM ratings for the current user
         if ($request->user() && $request->user()->mdd_id) {
             $myVq3Rating = PlayerRating::where('mdd_id', $request->user()->mdd_id)
                 ->where('physics', 'vq3')
-                ->where('mode', 'run')
+                ->where('mode', $gametype)
                 ->with('user')
                 ->first();
 
             $myCpmRating = PlayerRating::where('mdd_id', $request->user()->mdd_id)
                 ->where('physics', 'cpm')
-                ->where('mode', 'run')
+                ->where('mode', $gametype)
                 ->with('user')
                 ->first();
         } else {
@@ -66,5 +86,19 @@ class RankingController extends Controller
             ->with('cpmRatings', $cpmRatings)
             ->with('myVq3Rating', $myVq3Rating)
             ->with('myCpmRating', $myCpmRating);
+    }
+
+    protected function addCategoryRank($query)
+    {
+        $query = $query->toBase(); // Convert Eloquent builder to query builder
+
+        return DB::table(DB::raw("({$query->toSql()}) as sub"))
+            ->mergeBindings($query)
+            ->addSelect('*')
+            ->addSelect(DB::raw('
+                DENSE_RANK()
+                OVER (PARTITION BY physics, mode ORDER BY player_rating DESC)
+                AS category_rank
+            '));
     }
 }
